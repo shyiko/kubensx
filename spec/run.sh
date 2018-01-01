@@ -12,6 +12,10 @@ set -x
 ./kubensx --debug ls -c
 
 ./kubensx --debug use minikube:minikube/default
+./kubensx --debug use -x -
+# escaped symbols are expected (vendor/gopkg.in/AlecAivazis/survey.v1/terminal/cursor.go)
+# but not the coloring
+yes | ./kubensx use --debug --no-color
 
 ./kubensx --debug current
 ./kubensx --debug current -u

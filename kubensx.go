@@ -71,7 +71,7 @@ var newContext = func () (nsx.Context, error) {
 		if user == "minikube" && cluster == "minikube" {
 			return []string{"default", "kube-public", "kube-system"}, nil
 		}
-		if user == "stanley.shyiko@revjet.com" && cluster != "minikube" {
+		if user == "example@possibly-gmail.com" && cluster != "minikube" {
 			return []string{"default", "kube-public", "kube-system", "dev", "testing", "staging"}, nil
 		}
 		return nil, fmt.Errorf("Unauthorized (%s:%s)", user, cluster)
@@ -111,6 +111,10 @@ func main() {
 			}
 			if kubeconfig, _ := cmd.Flags().GetString("kubeconfig"); kubeconfig != "" {
 				os.Setenv("KUBECONFIG", kubeconfig)
+			}
+			if noColor, _ := cmd.Flags().GetBool("no-color"); noColor {
+				surveycore.DisableColor = true
+				color.NoColor = true
 			}
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -376,7 +380,7 @@ func main() {
 				mustContainAtLeastOneCluster(ctx)
 				mustContainAtLeastOneUser(ctx)
 				ctx.SetCluster(prompt("cluster:", sortInPlace(ctx.Clusters()), ctx.Cluster(), c))
-				users, user := ctx.Users(), ctx.User()
+				users, user := sortInPlace(ctx.Users()), ctx.User()
 				if !ignoreAssoc {
 					assoc := ctx.UsersByCluster()[ctx.Cluster()]
 					if len(assoc) != 0 {
@@ -388,7 +392,10 @@ func main() {
 				}
 				ctx.SetUser(prompt("user:", users, user, u))
 				ctx.SetNamespace(prompt("namespace:", sortInPlace(requireNamespaces(ctx)), ctx.Namespace(), n))
-				return nil
+			} else if args[0] == "-" {
+				ctx.SetCluster(ctx.ClusterPrevious())
+				ctx.SetUser(ctx.UserPrevious())
+				ctx.SetNamespace(ctx.NamespacePrevious())
 			} else {
 				pattern := args[0]
 				pattern, patternMatcher := newPatternMatcher(cmd, pattern)
@@ -500,7 +507,9 @@ func main() {
 				ctx.SetUser(promptPattern("user", usersByCluster(ctx.Cluster()), ctx.User(), user, userMatcher))
 				ctx.SetNamespace(promptPattern("namespace", boundNSS(), ctx.Namespace(), namespace, namespaceMatcher))
 			}
-			ctx.Commit()
+			if !dryRun {
+				ctx.Commit()
+			}
 			fmt.Println("Switched to " + formatContext(ctx))
 			return nil
 		},
@@ -520,6 +529,7 @@ func main() {
 	})
 	rootCmd.PersistentFlags().Bool("debug", false, "Turn on debug output")
 	rootCmd.PersistentFlags().String("kubeconfig", "", "Path to the config file (e.g. ~/.kube/config)")
+	rootCmd.PersistentFlags().Bool("no-color", false, "Disable color output")
 	rootCmd.Flags().Bool("version", false, "Print version information")
 	if err := rootCmd.Execute(); err != nil {
 		log.Debug(err)

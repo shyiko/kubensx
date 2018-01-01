@@ -27,7 +27,7 @@ test-coverage:
 	go tool cover -html=gover.coverprofile -o coverage.html && \
 	rm *.coverprofile
 
-test-spec:
+spec-diff:
 	spec/run.sh > /tmp/kubensx-spec-log 2>&1 && diff /tmp/kubensx-spec-log spec/expected.log | cat -A
 
 build:

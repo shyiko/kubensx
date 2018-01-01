@@ -1,10 +1,9 @@
 # kubensx
 
-Simpler Cluster/User/Namespace switching for Kubernetes, featuring:
-- interactive mode;
-- wildcard/fuzzy matching;
-- bash/zsh <kbd>Tab</kbd> completion;
-- single binary.
+Simpler Cluster/User/Namespace switching for Kubernetes  
+(featuring interactive mode and wildcard/fuzzy matching (among other things)).
+
+[![asciicast](https://asciinema.org/a/wtn1L6Tq4wavQcKbIn45lDiLe.png)](https://asciinema.org/a/wtn1L6Tq4wavQcKbIn45lDiLe)  
 
 In short, instead of
 ```sh
@@ -53,10 +52,10 @@ $ kubensx use kube-public
 # context matching is wildcard-ish by default, which means you don't have to type the whole thing
 # if there are two or more options available - you'll be asked to select one
 $ kubensx use west/def
-Switched to calf269:us-west1/default
+Switched to account@possibly-gmail.com:us-west1/default
 # prefer fuzzy?
 $ kubensx use -z us1/dfl
-Switched to calf269:us-west1/default
+Switched to account@possibly-gmail.com:us-west1/default
 
 # switch to previous context
 $ kubensx use -
@@ -81,6 +80,8 @@ $ kubensx assoc
 # you may want to `kubensx assoc minikube:minikube` (<user>:<cluster>) so that "minikube" 
 # wouldn't be shown among the users for any cluster other than "minikube" (when `kubesec use`ing) 
 ```
+
+> (for more information see `kubensx --help`)
 
 #### <kbd>Tab</kbd> completion
 

@@ -1,6 +1,6 @@
 + ./kubensx --debug ls -u
-example-us@gmail.com
-example@gmail.com
+example-us@possibly-gmail.com
+example@possibly-gmail.com
 minikube
 + ./kubensx --debug ls -c
 minikube
@@ -12,10 +12,49 @@ Searching for "minikube(true):minikube/default(true)"
 Initializing client with "minikube:minikube"
 Set "kubensx-prev" to "minikube:minikube/"
 Set "kubensx-current" to "minikube:minikube/default"
-Deleted assoc[iation] "kubensx-assoc:example-us@gmail.com:cluster-that-no-longer-exist"
-Found assoc[iation] "kubensx-assoc:example-us@gmail.com:us-east1"
-Found assoc[iation] "kubensx-assoc:example-us@gmail.com:us-west1"
+Deleted assoc[iation] "kubensx-assoc:example-us@possibly-gmail.com:cluster-that-no-longer-exist"
+Found assoc[iation] "kubensx-assoc:example-us@possibly-gmail.com:us-east1"
+Found assoc[iation] "kubensx-assoc:example-us@possibly-gmail.com:us-west1"
 Deleted assoc[iation] "kubensx-assoc:user-that-no-longer-exists:us-east1"
+Switched to minikube:minikube/default
++ ./kubensx --debug use -x -
+Switched to minikube:minikube/
++ yes
++ ./kubensx use --debug --no-color
+[0G[2Kcluster:
+❯ minikube
+  us
+  us-east1
+  us-west1
+[?25l[0G[2K[1F[2K[1F[2K[1F[2K[1F[2K[1F[2Kcluster:
+❯ minikube
+  us
+  us-east1
+  us-west1
+[?25h[0G[2K[1F[2K[1F[2K[1F[2K[1F[2K[1F[2Kcluster: minikube
+[0G[2Kuser:
+  example-us@possibly-gmail.com
+  example@possibly-gmail.com
+❯ minikube
+[?25l[0G[2K[1F[2K[1F[2K[1F[2K[1F[2Kuser:
+  example-us@possibly-gmail.com
+  example@possibly-gmail.com
+❯ minikube
+[?25h[0G[2K[1F[2K[1F[2K[1F[2K[1F[2Kuser: minikube
+Initializing client with "minikube:minikube"
+[0G[2Knamespace:
+❯ default
+  kube-public
+  kube-system
+[?25l[0G[2K[1F[2K[1F[2K[1F[2K[1F[2Knamespace:
+❯ default
+  kube-public
+  kube-system
+[?25h[0G[2K[1F[2K[1F[2K[1F[2K[1F[2Knamespace: default
+Set "kubensx-prev" to "minikube:minikube/default"
+Set "kubensx-current" to "minikube:minikube/default"
+Found assoc[iation] "kubensx-assoc:example-us@possibly-gmail.com:us-east1"
+Found assoc[iation] "kubensx-assoc:example-us@possibly-gmail.com:us-west1"
 Switched to minikube:minikube/default
 + ./kubensx --debug current
 minikube:minikube/default
@@ -39,8 +78,8 @@ Searching for "(true):*/(true)"
 :us-west1/
 + ./kubensx --debug use -x '*:/'
 Searching for "*(true):/(true)"
-example-us@gmail.com:/
-example@gmail.com:/
+example-us@possibly-gmail.com:/
+example@possibly-gmail.com:/
 minikube:/
 + ./kubensx --debug use -x :
 Searching for "(true):/default(false)"
@@ -84,10 +123,10 @@ minikube:minikube/default
 Searching for "minikube(false):us*/default(false)"
 Initializing client with "minikube:us"
 minikube:us/default
-Initializing client with "example-us@gmail.com:us-east1"
-example-us@gmail.com:us-east1/default
-Initializing client with "example-us@gmail.com:us-west1"
-example-us@gmail.com:us-west1/default
+Initializing client with "example-us@possibly-gmail.com:us-east1"
+example-us@possibly-gmail.com:us-east1/default
+Initializing client with "example-us@possibly-gmail.com:us-west1"
+example-us@possibly-gmail.com:us-west1/default
 + ./kubensx --debug use -x :us1/
 Searching for "(true):us1/(true)"
 + ./kubensx --debug use -x :us-/
@@ -122,12 +161,12 @@ Searching for "(true):us/(true)"
 :us/
 + ./kubensx --debug assoc minikube:minikube
 + minikube:minikube
-Found assoc[iation] "kubensx-assoc:example-us@gmail.com:us-east1"
-Found assoc[iation] "kubensx-assoc:example-us@gmail.com:us-west1"
+Found assoc[iation] "kubensx-assoc:example-us@possibly-gmail.com:us-east1"
+Found assoc[iation] "kubensx-assoc:example-us@possibly-gmail.com:us-west1"
 Found assoc[iation] "kubensx-assoc:minikube:minikube"
 + ./kubensx --debug assoc -l
-example-us@gmail.com:us-east1
-example-us@gmail.com:us-west1
+example-us@possibly-gmail.com:us-east1
+example-us@possibly-gmail.com:us-west1
 minikube:minikube
 + ./kubensx --debug assoc -x minikube
 + minikube:us
@@ -144,8 +183,8 @@ minikube:minikube
 + minikube:us-east1
 + minikube:us-west1
 + ./kubensx --debug assoc -x '*:kube'
-+ example-us@gmail.com:minikube
-+ example@gmail.com:minikube
++ example-us@possibly-gmail.com:minikube
++ example@possibly-gmail.com:minikube
 + ./kubensx --debug assoc -x :
 <user> cannot be empty
 + ./kubensx --debug assoc -x '*:'
@@ -158,10 +197,10 @@ Initializing client with "minikube:minikube"
 minikube:minikube/default
 + ./kubensx --debug use -x --ignore-assoc '*:kube'
 Searching for "*(true):kube/default(false)"
-Initializing client with "example-us@gmail.com:minikube"
-example-us@gmail.com:minikube/default
-Initializing client with "example@gmail.com:minikube"
-example@gmail.com:minikube/default
+Initializing client with "example-us@possibly-gmail.com:minikube"
+example-us@possibly-gmail.com:minikube/default
+Initializing client with "example@possibly-gmail.com:minikube"
+example@possibly-gmail.com:minikube/default
 Initializing client with "minikube:minikube"
 minikube:minikube/default
 + echo done
