@@ -20,12 +20,12 @@ context can be changed with `kubensx use user:cluster/namespace` or simply `kube
 #### macOS / Linux
 
 ```sh
-curl -sSL https://github.com/shyiko/kubensx/releases/download/0.1.0/kubensx-0.1.0-$(
+curl -sSL https://github.com/shyiko/kubensx/releases/download/0.1.1/kubensx-0.1.1-$(
     bash -c '[[ $OSTYPE == darwin* ]] && echo darwin || echo linux'
   )-amd64 -o kubensx && chmod a+x kubensx && sudo mv kubensx /usr/local/bin/
     
 # verify PGP signature (optional but RECOMMENDED)
-curl -sSL https://github.com/shyiko/kubensx/releases/download/0.1.0/kubensx-0.1.0-$(
+curl -sSL https://github.com/shyiko/kubensx/releases/download/0.1.1/kubensx-0.1.1-$(
     bash -c '[[ $OSTYPE == darwin* ]] && echo darwin || echo linux'
   )-amd64.asc -o kubensx.asc
 curl -sS https://keybase.io/shyiko/pgp_keys.asc | gpg --import
