@@ -654,6 +654,9 @@ func prompt(text string, opts []string, selection string, askUserToSelect bool) 
 	if askUserToSelect && len(opts) > 1 {
 		return promptSelect(text, opts, selection)
 	} else {
+		if len(opts) == 1 {
+			selection = opts[0]
+		}
 		return printSelect(text, selection)
 	}
 }
