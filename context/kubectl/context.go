@@ -7,6 +7,7 @@ import (
 	k8s "k8s.io/client-go/kubernetes"
 	k8sclientcmd "k8s.io/client-go/tools/clientcmd"
 	k8sclientcmdapi "k8s.io/client-go/tools/clientcmd/api"
+        _ "k8s.io/client-go/plugin/pkg/client/auth/oidc"
 	"sort"
 	"strings"
 )
