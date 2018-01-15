@@ -95,7 +95,7 @@ $ source <(kubensx completion zsh)
 
 ## Development
 
-> PREREQUISITE: [go1.8+](https://golang.org/dl/).
+> PREREQUISITE: [go1.9+](https://golang.org/dl/).
 
 ```sh
 git clone https://github.com/shyiko/kubensx $GOPATH/src/github.com/shyiko/kubensx
