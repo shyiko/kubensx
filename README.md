@@ -1,4 +1,4 @@
-# kubensx
+# kubensx ![Latest Version](https://img.shields.io/badge/latest-0.1.1-blue.svg) [![Build Status](https://travis-ci.org/shyiko/kubensx.svg?branch=master)](https://travis-ci.org/shyiko/kubensx)
 
 Simpler Cluster/User/Namespace switching for Kubernetes  
 (featuring interactive mode and wildcard/fuzzy matching (among other things)).
