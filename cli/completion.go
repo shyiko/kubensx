@@ -34,6 +34,7 @@ func (c *Completion) GenZshCompletion(w io.Writer) error {
 }
 
 // complete.PredictSet(...) alternative
+/*
 type oneOf []string
 
 func (p oneOf) Predict(args complete.Args) []string {
@@ -44,6 +45,7 @@ func (p oneOf) Predict(args complete.Args) []string {
 	}
 	return p
 }
+*/
 
 func (c *Completion) Execute() (bool, error) {
 	bin, err := os.Executable()
@@ -67,7 +69,6 @@ func (c *Completion) Execute() (bool, error) {
 					"-l":           complete.PredictNothing,
 				},
 				// todo:
-				// initially show user: & user:*, once completed user:...
 				// Args: oneOf(c.ctx().Users()),
 			},
 			"completion": complete.Command{
@@ -132,13 +133,21 @@ func (c *Completion) Execute() (bool, error) {
 				},
 			},
 		},
+		Flags: complete.Flags{
+			"--version": complete.PredictNothing,
+		},
 		GlobalFlags: complete.Flags{
-			"--kubeconfig": complete.PredictFiles("*"),
 			"--debug":      complete.PredictNothing,
-			"--version":    complete.PredictNothing,
+			"--kubeconfig": complete.PredictFiles("*"),
+			"--no-color":   complete.PredictNothing,
 			"--help":       complete.PredictNothing,
+			"-h":           complete.PredictNothing,
 		},
 	}
+	run.Sub["a"] = run.Sub["assoc"]
+	run.Sub["c"] = run.Sub["current"]
+	run.Sub["l"] = run.Sub["ls"]
+	run.Sub["u"] = run.Sub["use"]
 	completion := complete.New(filepath.Base(bin), run)
 	if os.Getenv("COMP_LINE") != "" {
 		flag.Parse()
