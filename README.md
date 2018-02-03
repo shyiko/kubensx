@@ -23,8 +23,11 @@ context can be changed with `kubensx use user:cluster/namespace` or simply `kube
 curl -sSL https://github.com/shyiko/kubensx/releases/download/0.1.1/kubensx-0.1.1-$(
     bash -c '[[ $OSTYPE == darwin* ]] && echo darwin || echo linux'
   )-amd64 -o kubensx && chmod a+x kubensx && sudo mv kubensx /usr/local/bin/
-    
-# verify PGP signature (optional but RECOMMENDED)
+```
+
+Verify PGP signature (optional but recommended): 
+
+```
 curl -sSL https://github.com/shyiko/kubensx/releases/download/0.1.1/kubensx-0.1.1-$(
     bash -c '[[ $OSTYPE == darwin* ]] && echo darwin || echo linux'
   )-amd64.asc -o kubensx.asc
@@ -32,9 +35,11 @@ curl -sS https://keybase.io/shyiko/pgp_keys.asc | gpg --import
 gpg --verify kubensx.asc /usr/local/bin/kubensx
 ```  
 
+> macOS: `gpg` can be installed with `brew install gnupg`
+
 #### Windows
 
-Download binary from the [Releases](https://github.com/shyiko/kubensx/releases) page.
+Download executable from the [Releases](https://github.com/shyiko/kubensx/releases) page.
 
 ## Usage
 
