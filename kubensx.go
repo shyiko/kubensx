@@ -299,26 +299,30 @@ func main() {
 			if !n {
 				n, _ = cmd.Flags().GetBool("ns")
 			}
-			if u && c || u && n || c && n {
-				return errors.New("--user(-u)/--cluster(-c)/--namespace(--ns,-n) cannot be used together")
+			if u && !c && n {
+				return errors.New("--cluster(-c) cannot be omitted when both --user(-u) and --namespace(--ns,-n) are present")
 			}
 			switch {
+			case u == c == n:
+				fmt.Println(formatContext(ctx))
+			case u && c && !n:
+				fmt.Printf("%s:%s\n", ctx.User(), ctx.Cluster())
+			case !u && c && n:
+				fmt.Printf("%s/%s\n", ctx.Cluster(), ctx.Namespace())
 			case u:
 				fmt.Println(ctx.User())
 			case c:
 				fmt.Println(ctx.Cluster())
 			case n:
 				fmt.Println(ctx.Namespace())
-			default:
-				fmt.Println(formatContext(ctx))
 			}
 			return nil
 		},
 	}
-	currentCmd.Flags().BoolP("cluster", "c", false, "Output cluster only")
-	currentCmd.Flags().BoolP("namespace", "n", false, "Output namespace only")
+	currentCmd.Flags().BoolP("cluster", "c", false, "Output cluster only (can be combined with --user(-u) and --namespace(--ns,-n))")
+	currentCmd.Flags().BoolP("namespace", "n", false, "Output namespace only (can be combined with --cluster(-c))")
 	currentCmd.Flags().Bool("ns", false, "Alias for --namespace")
-	currentCmd.Flags().BoolP("user", "u", false, "Output user only")
+	currentCmd.Flags().BoolP("user", "u", false, "Output user only (can be combined with --cluster(-c))")
 	rootCmd.AddCommand(currentCmd)
 	lsCmd := &cobra.Command{
 		Use:     "ls",
