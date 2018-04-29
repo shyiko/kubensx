@@ -75,18 +75,40 @@ $ kubensx ls -u
 $ kubensx ls -c
 # list <namespace>s (inside current <cluster>)
 $ kubensx ls -n
-
-# (optional)
-# by default any <user> can be used with any <cluster>
-# if you want to restrict (assoc[iate]) certain user(s) to some of the clusters use 
-$ kubensx assoc
-# for example: 
-# if you have a "minikube" user which you only use in the context of local "minikube" cluster, 
-# you may want to `kubensx assoc minikube:minikube` (<user>:<cluster>) so that "minikube" 
-# wouldn't be shown among the users for any cluster other than "minikube" (when `kubesec use`ing) 
 ```
 
 > (for more information see `kubensx --help`)
+
+#### user &lt;-&gt; cluster assoc[iation] 
+
+By default, any `<user>` can be used with any `<cluster>`.  
+If you want to restrict (assoc[iate]) certain user(s) to some of the clusters use 
+```sh
+$ kubensx assoc
+```
+
+For example: if you have a "minikube" user which you only use in the context of local "minikube" cluster, 
+you may want to `kubensx assoc minikube:minikube` (`<user>:<cluster>`) so that "minikube" 
+wouldn't be shown among the users for any cluster other than "minikube" (when `kubesec use`ing).
+
+#### Access Control
+
+If a user is not allowed to list namespaces, you can either provide a list of namespaces known to that user with config-ns:
+
+```sh
+# interactive
+$ kubensx config-ns
+# mark default, kube-system and kube-public namespaces as known in us-west1 cluster
+$ kubensx config-ns us-west1/{default,kube-system,kube-public}
+$ kubensx use west/def
+Switched to account@possibly-gmail.com:us-west1/default
+```
+or use --force(-f) to suppress namespace validation (namespace will have to be provided --exact|ly)
+
+```sh
+$ kubensx use west/default --force
+Switched to account@possibly-gmail.com:us-west1/default
+```
 
 #### <kbd>Tab</kbd> completion
 
