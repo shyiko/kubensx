@@ -49,6 +49,8 @@ func init() {
 		`{{.Answer}}`, `{{or .Answer "\"\""}}`, 1)
 	survey.SelectQuestionTemplate = strings.Replace(survey.SelectQuestionTemplate,
 		`{{- $choice}}`, `{{- or $choice "\"\""}}`, 1)
+	survey.SelectQuestionTemplate = strings.Replace(survey.SelectQuestionTemplate,
+		`{{- "  "}}{{- color "cyan"}}[Use arrows to move, type to filter{{- if and .Help (not .ShowHelp)}}, {{ HelpInputRune }} for more help{{end}}]{{color "reset"}}`, ``, 1)
 	// remove "? " prefix
 	survey.MultiSelectQuestionTemplate = strings.Replace(survey.MultiSelectQuestionTemplate,
 		`{{- color "green+hb"}}{{ QuestionIcon }} {{color "reset"}}`, "", 1)
@@ -59,6 +61,12 @@ func init() {
 	// "  " -> " " before option
 	survey.MultiSelectQuestionTemplate = strings.Replace(survey.MultiSelectQuestionTemplate,
 		`{{- " "}}{{$option}}`, "{{- $option}}", 1)
+	survey.InputQuestionTemplate = strings.Replace(survey.InputQuestionTemplate,
+		`{{- color "green+hb"}}{{ QuestionIcon }} {{color "reset"}}`, "", 1)
+	survey.InputQuestionTemplate = strings.Replace(survey.InputQuestionTemplate,
+		`[{{ HelpInputRune }} for help]`, "({{ .Help }})", 1)
+	survey.InputQuestionTemplate = strings.Replace(survey.InputQuestionTemplate,
+		`{{.Answer}}`, `{{or .Answer "\"\""}}`, 1)
 	surveycore.MarkedOptionIcon = "+"
 	surveycore.UnmarkedOptionIcon = " "
 }
@@ -91,6 +99,9 @@ func lazyContext() func() nsx.Context {
 		return ctx
 	}
 }
+
+var validNS = regexp.MustCompile(`^[a-z0-9-.]+$`)
+var whitespace = regexp.MustCompile("\\s+")
 
 func main() {
 	completion := cli.NewCompletion(lazyContext())
@@ -242,13 +253,175 @@ func main() {
 			"  kubensx assoc --dry-run minikube\n" +
 			"  kubensx assoc --dry-run '*:minikube'",
 	}
-	assocCmd.Flags().BoolP("delete", "d", false, "Delete assoc[iation]")
+	assocCmd.Flags().BoolP("delete", "d", false, "Delete assoc[iation](s)")
 	assocCmd.Flags().Bool("delete-all", false, "Delete all assoc[iations]")
 	assocCmd.Flags().BoolP("dry-run", "x", false, "Do not modify the config (just show what's going happen)")
 	assocCmd.Flags().BoolP("exact", "e", false, "Match exactly (instead of default (wildcard) matching)")
 	assocCmd.Flags().BoolP("fuzzy", "z", false, "Match fuzzily (instead of default (wildcard) matching)")
-	assocCmd.Flags().BoolP("list", "l", false, "List assoc[iations] (<user>:<cluster> pairs)")
+	assocCmd.Flags().BoolP("list", "l", false, "List assoc[iations] (<user>:<cluster>|s)")
 	rootCmd.AddCommand(assocCmd)
+	assocNsCmd := &cobra.Command{
+		Use:     "config-ns [pattern...]",
+		Aliases: []string{"n"},
+		Short:   "Control list of namespaces",
+		Long: "Control list of namespaces\n\n" +
+			"Use config-ns when:" +
+			"\n  - You wish to able to select a namespace from a list of options (e.g. \"kubensx use\")\nbut Access Control configuration prohibits user from listing namespaces; " +
+			"\n  - You wish to reduce number of namespaces available for selection.",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			ctx, err := newContext()
+			if err != nil {
+				log.Fatal(err)
+			}
+			dissociate, _ := cmd.Flags().GetBool("delete")
+			if dissociate && len(args) == 0 {
+				return errors.New("pattern (<user>:<cluster>/<namespace>) required")
+			}
+			dissociateAll, _ := cmd.Flags().GetBool("delete-all")
+			if dissociateAll && len(args) != 0 {
+				return errors.New("--delete-all and pattern cannot be used together")
+			}
+			if list, _ := cmd.Flags().GetBool("list"); list {
+				if dissociate || dissociateAll {
+					return errors.New("--list and --delete/--delete-all cannot be used together")
+				}
+				for _, fqns := range sortFQNSSliceInPlace(ctx.ExplicitNamespaces()) {
+					fmt.Printf("%s:%s/%s\n", fqns.User, fqns.Cluster, fqns.NS)
+				}
+				return nil
+			}
+			ignoreAssoc, _ := cmd.Flags().GetBool("ignore-assoc")
+			if len(args) == 0 && !dissociateAll {
+				mustContainAtLeastOneUser(ctx)
+				mustContainAtLeastOneCluster(ctx)
+				user := prompt("user:", sortInPlace(ctx.Users()), ctx.User(), true)
+				clusters := ctx.ClustersByUser()[user]
+				if ignoreAssoc || len(clusters) == 0 {
+					clusters = ctx.Clusters()
+				}
+				cluster := prompt("cluster:", sortInPlace(clusters), ctx.Cluster(), true)
+				var nss []string
+				for _, r := range ctx.ExplicitNamespaces() {
+					if r.User == user && r.Cluster == cluster {
+						nss = append(nss, r.NS)
+					}
+				}
+				sort.Strings(nss)
+				input := promptInput("namespace(s):", strings.Join(nss, " "), "space-separated")
+				var unss []string
+				for _, m := range whitespace.Split(input, -1) {
+					if m != "" {
+						if err := validateNS(m); err != nil {
+							log.Fatalf(err.Error())
+						}
+						unss = append(unss, m)
+					}
+				}
+			nextNS:
+				for _, ns := range nss {
+					for _, uns := range unss {
+						if ns == uns {
+							continue nextNS
+						}
+					}
+					ctx.DeleteExplicitNamespace(user, cluster, ns)
+					fmt.Printf("- %s:%s/%s\n", user, cluster, ns)
+				}
+			nextUNS:
+				for _, uns := range unss {
+					for _, ns := range nss {
+						if ns == uns {
+							continue nextUNS
+						}
+					}
+					ctx.SetExplicitNamespace(user, cluster, uns)
+					fmt.Printf("+ %s:%s/%s\n", user, cluster, uns)
+				}
+			} else {
+				var fqnss []nsx.FQNS
+				if len(args) != 0 {
+					for _, arg := range args {
+						slashIndex := strings.LastIndex(arg, "/")
+						if slashIndex == -1 {
+							log.Fatalf(`Expected <user>:<cluster>/<namespace> or <cluster>/<namespace> (instead got "%s")`, arg)
+						}
+						namespace := arg[slashIndex+1:]
+						if err := validateNS(namespace); err != nil {
+							log.Fatal(err.Error())
+						}
+						pattern, patternMatcher := newPatternMatcher(cmd, arg[0:slashIndex])
+						chunks := regexp.MustCompile(":").Split(pattern, 2)
+						if len(chunks) == 1 {
+							chunks = append([]string{"*"}, chunks...)
+						}
+						if chunks[0] == "" {
+							log.Fatalf(`<user> cannot be empty ("%s")`, arg)
+						}
+						if chunks[1] == "" {
+							log.Fatalf(`<cluster> cannot be empty ("%s")`, arg)
+						}
+						userMatcher := bindMatcher(patternMatcher, chunks[0], ctx.User())
+						clusterMatcher := bindMatcher(patternMatcher, chunks[1], ctx.Cluster())
+						clusters := ctx.Clusters()
+						assoc := ctx.ClustersByUser()
+						clustersByUser := func(user string) []string {
+							r := assoc[user]
+							if ignoreAssoc || len(r) == 0 {
+								return clusters
+							}
+							return r
+						}
+						namespaceMatcher := bindMatcher(patternMatcher, namespace, ctx.Namespace())
+						for _, ns := range namespaceMatcher([]string{namespace}) {
+							for _, user := range userMatcher(ctx.Users()) {
+								for _, cluster := range clusterMatcher(clustersByUser(user)) {
+									fqnss = append(fqnss, nsx.FQNS{User: user, Cluster: cluster, NS: ns})
+								}
+							}
+						}
+					}
+				} else {
+					fqnss = ctx.ExplicitNamespaces()
+				}
+				for _, fqns := range sortFQNSSliceInPlace(fqnss) {
+					if dissociate || dissociateAll {
+						if ctx.DeleteExplicitNamespace(fqns.User, fqns.Cluster, fqns.NS) {
+							fmt.Printf("- %s:%s/%s\n", fqns.User, fqns.Cluster, fqns.NS)
+						}
+					} else {
+						if ctx.SetExplicitNamespace(fqns.User, fqns.Cluster, fqns.NS) {
+							fmt.Printf("+ %s:%s/%s\n", fqns.User, fqns.Cluster, fqns.NS)
+						}
+					}
+				}
+			}
+			dryRun, _ := cmd.Flags().GetBool("dry-run")
+			if !dryRun {
+				ctx.Commit()
+			}
+			return nil
+		},
+		Example: "  # (interactive)\n" +
+			"  kubensx config-ns\n" +
+			"  # make staging namespace known for qa in us-west1 cluster\n" +
+			"  kubensx config-ns qa:us-west1/staging\n" +
+			"  \n" +
+			"  # list assoc[iations]\n" +
+			"  kubensx config-ns -l\n" +
+			"  \n" +
+			"  # list <user>:<cluster>/<namespace> triples that would be assoc[iated] should\n" +
+			"  # `kubensx config-ns <user>:<cluster>/<namespace>` be executed\n" +
+			"  kubensx config-ns --dry-run minikube/staging\n" +
+			"  kubensx config-ns --dry-run '*:minikube/staging'",
+	}
+	assocNsCmd.Flags().BoolP("delete", "d", false, "Delete assoc[iation](s)")
+	assocNsCmd.Flags().Bool("delete-all", false, "Delete all assoc[iations]")
+	assocNsCmd.Flags().BoolP("dry-run", "x", false, "Do not modify the config (just show what's going happen)")
+	assocNsCmd.Flags().BoolP("exact", "e", false, "Match exactly (instead of default (wildcard) matching)")
+	assocNsCmd.Flags().BoolP("fuzzy", "z", false, "Match fuzzily (instead of default (wildcard) matching)")
+	assocNsCmd.Flags().Bool("ignore-assoc", false, "Ignore user:cluster assoc[iations] (if any)")
+	assocNsCmd.Flags().BoolP("list", "l", false, "List assoc[iations] (<user>:<cluster>/<namespace>|s)")
+	rootCmd.AddCommand(assocNsCmd)
 	completionCmd := &cobra.Command{
 		Use:   "completion",
 		Short: "Command-line completion",
@@ -332,6 +505,7 @@ func main() {
 			u, _ := cmd.Flags().GetBool("users")
 			c, _ := cmd.Flags().GetBool("clusters")
 			n, _ := cmd.Flags().GetBool("namespaces")
+			ignoreExplicitNS, _ := cmd.Flags().GetBool("ignore-config-ns")
 			if !u && !c && !n {
 				return pflag.ErrHelp
 			}
@@ -348,7 +522,7 @@ func main() {
 			case c:
 				printWithSelectionHighlighted(ctx.Clusters(), ctx.Cluster())
 			case n:
-				printWithSelectionHighlighted(requireNamespaces(ctx), ctx.Namespace())
+				printWithSelectionHighlighted(requireNamespaces(ctx, !ignoreExplicitNS), ctx.Namespace())
 			}
 			return nil
 		},
@@ -356,6 +530,7 @@ func main() {
 	lsCmd.Flags().BoolP("clusters", "c", false, "List clusters")
 	lsCmd.Flags().BoolP("namespaces", "n", false, "List namespaces")
 	lsCmd.Flags().BoolP("users", "u", false, "List users")
+	lsCmd.Flags().Bool("ignore-config-ns", false, "Ignore explicit user:cluster/namespace(s) (if any)")
 	rootCmd.AddCommand(lsCmd)
 	useCmd := &cobra.Command{
 		Use:     "use [user:cluster/namespace]",
@@ -377,10 +552,9 @@ func main() {
 			}
 			dryRun, _ := cmd.Flags().GetBool("dry-run")
 			ignoreAssoc, _ := cmd.Flags().GetBool("ignore-assoc")
+			ignoreExplicitNS, _ := cmd.Flags().GetBool("ignore-config-ns")
+			force, _ := cmd.Flags().GetBool("force")
 			if len(args) == 0 {
-				if dryRun {
-					return pflag.ErrHelp
-				}
 				mustContainAtLeastOneCluster(ctx)
 				mustContainAtLeastOneUser(ctx)
 				ctx.SetCluster(prompt("cluster:", sortInPlace(ctx.Clusters()), ctx.Cluster(), c))
@@ -395,7 +569,18 @@ func main() {
 					}
 				}
 				ctx.SetUser(prompt("user:", users, user, u))
-				ctx.SetNamespace(prompt("namespace:", sortInPlace(requireNamespaces(ctx)), ctx.Namespace(), n))
+				nss := requireNamespaces(ctx, !ignoreExplicitNS)
+				if len(nss) == 0 {
+					fmt.Println("\nIt appears that the user you have selected is not allowed to list namespaces.\n" +
+						"If you wish to avoid manual entry next time you `kubensx use` - see `kubensx config-ns --help`.\n")
+					ns := promptInput("namespace:", "", "")
+					if err := validateNS(ns); err != nil {
+						log.Fatalf(err.Error())
+					}
+					ctx.SetNamespace(ns)
+				} else {
+					ctx.SetNamespace(prompt("namespace:", sortInPlace(nss), ctx.Namespace(), n))
+				}
 			} else if args[0] == "-" {
 				ctx.SetCluster(ctx.ClusterPrevious())
 				ctx.SetUser(ctx.UserPrevious())
@@ -453,7 +638,18 @@ func main() {
 					userMatcher = allowEmpty(userMatcher)
 				}
 				namespaceMatcher := stableMatcher(bindMatcher(patternMatcher, namespace, ctx.Namespace()))
-				boundNSS := func() []string { return requireNamespaces(ctx) }
+				boundNSS := func() []string {
+					if force {
+						return []string{namespace}
+					}
+					r := requireNamespaces(ctx, !ignoreExplicitNS)
+					if len(r) == 0 {
+						log.Fatalf("It appears that \"%s\" is not allowed to list namespaces in \"%s\" cluster.\n"+
+							"Either use --force(-f) (in which case namespace must be specified --exact|ly) or "+
+							"provide an explicit list of namespaces via `kubensx config-ns`.", ctx.User(), ctx.Cluster())
+					}
+					return r
+				}
 				if namespace == "" {
 					namespaceMatcher = allowEmpty(namespaceMatcher)
 					boundNSS = func() []string { return []string{""} }
@@ -519,13 +715,16 @@ func main() {
 		},
 	}
 	useCmd.Flags().BoolP("cluster", "c", false, "Change cluster only")
-	useCmd.Flags().BoolP("dry-run", "x", false, "List matches (without changing the context) (requires pattern)")
-	useCmd.Flags().BoolP("exact", "e", false, "Match exactly (instead of default (wildcard) matching)")
-	useCmd.Flags().BoolP("fuzzy", "z", false, "Match fuzzily (instead of default (wildcard) matching)")
-	useCmd.Flags().Bool("ignore-assoc", false, "Ignore user:cluster assoc[iations]")
+	useCmd.Flags().BoolP("dry-run", "x", false, "List matches (without changing the context)")
+	useCmd.Flags().BoolP("exact", "e", false, "Match exactly (by default wildcard matching is used)")
+	useCmd.Flags().BoolP("fuzzy", "z", false, "Match fuzzily (by default wildcard matching is used)")
+	useCmd.Flags().Bool("ignore-assoc", false, "Ignore user:cluster assoc[iations] (if any)")
+	useCmd.Flags().Bool("ignore-config-ns", false, "Ignore explicit user:cluster/namespace(s) (if any)")
 	useCmd.Flags().BoolP("namespace", "n", false, "Change namespace only")
 	useCmd.Flags().Bool("ns", false, "Alias for --namespace")
 	useCmd.Flags().BoolP("user", "u", false, "Change user only")
+	useCmd.Flags().BoolP("force", "f", false, "Skip namespace validation (NOTE: namespace must be provided --exact|ly)"+
+		"\n(useful when user is not allowed to list namespaces; see also \"kubensx config-ns --help\")")
 	rootCmd.AddCommand(useCmd)
 	walk(rootCmd, func(cmd *cobra.Command) {
 		cmd.Flags().BoolP("help", "h", false, "Print usage")
@@ -539,6 +738,38 @@ func main() {
 		log.Debug(err)
 		os.Exit(-1)
 	}
+}
+
+func validateNS(ns string) error {
+	if !validNS.MatchString(ns) {
+		return fmt.Errorf(`"%s" is not a valid namespace`, ns)
+	}
+	return nil
+}
+
+func sortFQNSSliceInPlace(s []nsx.FQNS) []nsx.FQNS {
+	sort.Slice(s, func(i, j int) bool {
+		switch strings.Compare(s[i].User, s[j].User) {
+		case -1:
+			return true
+		case 1:
+			return false
+		}
+		switch strings.Compare(s[i].Cluster, s[j].Cluster) {
+		case -1:
+			return true
+		case 1:
+			return false
+		}
+		switch strings.Compare(s[i].NS, s[j].NS) {
+		case -1:
+			return true
+		case 1:
+			return false
+		}
+		return false
+	})
+	return s
 }
 
 func mustContainAtLeastOneCluster(ctx nsx.Context) {
@@ -555,8 +786,14 @@ func mustContainAtLeastOneUser(ctx nsx.Context) {
 	}
 }
 
-func requireNamespaces(ctx nsx.Context) []string {
-	r, err := ctx.Namespaces()
+func requireNamespaces(ctx nsx.Context, explicit bool) []string {
+	var r []string
+	var err error
+	if explicit {
+		r, err = ctx.NamespaceView()
+	} else {
+		r, err = ctx.Namespaces()
+	}
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -697,6 +934,22 @@ func promptMultiSelect(text string, opts []string, def []string) []string {
 			Message: text,
 			Options: opts,
 			Default: def,
+		},
+		&value,
+		nil,
+	); err != nil {
+		log.Fatal(err)
+	}
+	return value
+}
+
+func promptInput(text string, def string, help string) string {
+	value := def
+	if err := survey.AskOne(
+		&survey.Input{
+			Message:     text,
+			Default:     def,
+			Help:        help,
 		},
 		&value,
 		nil,

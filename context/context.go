@@ -13,11 +13,22 @@ type Context interface {
 	Namespace() string
 	NamespacePrevious() string
 	Namespaces() ([]string, error)
+	NamespaceView() ([]string, error)
 
 	Associate(user string, cluster string) bool
 	UsersByCluster() map[string][]string // cluster -> []user
 	ClustersByUser() map[string][]string // user -> []cluster
 	Dissociate(user string, cluster string) bool
 
+	ExplicitNamespaces() []FQNS
+	SetExplicitNamespace(user string, cluster string, namespace string) bool
+	DeleteExplicitNamespace(user string, cluster string, namespace string) bool
+
 	Commit() error
+}
+
+type FQNS struct {
+	User    string
+	Cluster string
+	NS      string
 }

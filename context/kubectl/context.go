@@ -3,6 +3,7 @@ package kubectl
 import (
 	log "github.com/Sirupsen/logrus"
 	nsx "github.com/shyiko/kubensx/context"
+	"k8s.io/apimachinery/pkg/api/errors"
 	k8smetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	k8s "k8s.io/client-go/kubernetes"
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
@@ -15,6 +16,8 @@ import (
 const (
 	assocPrefix    = "kubensx-assoc:"
 	assocSeparator = ":"
+	nsPrefix       = "kubensx-ns:"
+	nsSeparator    = "/"
 	contextCurrent = "kubensx-current"
 	contextPrev    = "kubensx-prev"
 )
@@ -91,7 +94,26 @@ func (ctx *context) NamespacePrevious() string {
 }
 
 func (ctx *context) Namespaces() ([]string, error) {
-	return ctx.nss(ctx.User(), ctx.Cluster())
+	r, err := ctx.nss(ctx.User(), ctx.Cluster())
+	if statusError, ok := err.(*errors.StatusError); ok && statusError.ErrStatus.Code == 403 {
+		return r, nil
+	}
+	return r, err
+}
+
+func (ctx *context) NamespaceView() ([]string, error) {
+	var r []string
+	user := ctx.User()
+	cluster := ctx.Cluster()
+	for _, ref := range ctx.ExplicitNamespaces() {
+		if ref.User == user && ref.Cluster == cluster {
+			r = append(r, ref.NS)
+		}
+	}
+	if len(r) > 0 {
+		return r, nil
+	}
+	return ctx.Namespaces()
 }
 
 func (ctx *context) Associate(user string, cluster string) bool {
@@ -147,6 +169,45 @@ func (ctx *context) Dissociate(user string, cluster string) bool {
 	return true
 }
 
+func (ctx *context) ExplicitNamespaces() []nsx.FQNS {
+	var r []nsx.FQNS
+	for key := range ctx.cfg.Contexts {
+		if strings.HasPrefix(key, nsPrefix) {
+			pair := strings.TrimPrefix(key, nsPrefix)
+			idx := strings.LastIndex(pair, nsSeparator)
+			if idx != -1 {
+				split := strings.SplitN(pair[:idx], assocSeparator, 2)
+				if len(split) == 2 {
+					r = append(r, nsx.FQNS{User: split[0], Cluster: split[1], NS: pair[idx+1:]})
+				}
+			}
+		}
+	}
+	return r
+}
+
+func (ctx *context) SetExplicitNamespace(user string, cluster string, namespace string) bool {
+	key := nsKey(user, cluster, namespace)
+	if ctx.cfg.Contexts[key] != nil {
+		return false
+	}
+	ctx.cfg.Contexts[key] = &k8sclientcmdapi.Context{AuthInfo: user, Cluster: cluster, Namespace: namespace}
+	return true
+}
+
+func (ctx *context) DeleteExplicitNamespace(user string, cluster string, namespace string) bool {
+	key := nsKey(user, cluster, namespace)
+	if ctx.cfg.Contexts[key] == nil {
+		return false
+	}
+	delete(ctx.cfg.Contexts, key)
+	return true
+}
+
+func nsKey(user string, cluster string, namespace string) string {
+	return nsPrefix + user + assocSeparator + cluster + nsSeparator + namespace
+}
+
 func (ctx *context) Commit() error {
 	if ctx.currentContextMutated {
 		if ctx.pre != nil {
@@ -156,12 +217,12 @@ func (ctx *context) Commit() error {
 		curr := ctx.cfg.Contexts[ctx.cfg.CurrentContext]
 		log.Debugf(`Set "%s" to "%s:%s/%s"`, contextCurrent, curr.AuthInfo, curr.Cluster, curr.Namespace)
 	}
-	ctx.purgeInvalidAssoc()
+	ctx.purgeInvalid()
 	k8sclientcmd.ModifyConfig(ctx.acs, *ctx.cfg, false)
 	return nil
 }
 
-func (ctx *context) purgeInvalidAssoc() {
+func (ctx *context) purgeInvalid() {
 	var keys []string
 	for key := range ctx.cfg.Contexts {
 		keys = append(keys, key)
@@ -170,21 +231,25 @@ func (ctx *context) purgeInvalidAssoc() {
 	for _, key := range keys {
 		if strings.HasPrefix(key, assocPrefix) {
 			pair := strings.TrimPrefix(key, assocPrefix)
-			idx := strings.LastIndex(pair, assocSeparator)
-			if idx == -1 {
-				if key != contextCurrent && key != contextPrev {
-					log.Debugf(`Deleted assoc[iation] "%s"`, key)
-					delete(ctx.cfg.Contexts, key)
-				}
+			path := strings.SplitN(pair, assocSeparator, 2)
+			if len(path) == 2 && ctx.cfg.AuthInfos[path[0]] != nil && ctx.cfg.Clusters[path[1]] != nil {
+				log.Debugf(`Found assoc[iation] "%s"`, key)
 				continue
 			}
-			user, cluster := pair[:idx], pair[idx+1:]
-			if ctx.cfg.AuthInfos[user] == nil || ctx.cfg.Clusters[cluster] == nil {
-				log.Debugf(`Deleted assoc[iation] "%s"`, key)
-				delete(ctx.cfg.Contexts, key)
-			} else {
-				log.Debugf(`Found assoc[iation] "%s"`, key)
+			log.Debugf(`Deleted assoc[iation] "%s"`, key)
+			delete(ctx.cfg.Contexts, key)
+		} else if strings.HasPrefix(key, nsPrefix) {
+			triple := strings.TrimPrefix(key, nsPrefix)
+			idx := strings.LastIndex(triple, nsSeparator)
+			if idx != -1 {
+				path := strings.SplitN(triple[:idx], assocSeparator, 2)
+				if len(path) == 2 && ctx.cfg.AuthInfos[path[0]] != nil && ctx.cfg.Clusters[path[1]] != nil {
+					log.Debugf(`Found explicit ns "%s"`, key)
+					continue
+				}
 			}
+			log.Debugf(`Deleted explicit ns "%s"`, key)
+			delete(ctx.cfg.Contexts, key)
 		}
 	}
 }
