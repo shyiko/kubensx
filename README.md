@@ -79,7 +79,7 @@ $ kubensx ls -n
 
 > (for more information see `kubensx --help`)
 
-#### user &lt;-&gt; cluster assoc[iation] 
+#### User &lt;-&gt; Cluster assoc[iation] 
 
 By default, any `<user>` can be used with any `<cluster>`.  
 If you want to restrict (assoc[iate]) certain user(s) to some of the clusters use 
