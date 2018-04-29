@@ -1,4 +1,4 @@
-# kubensx ![Latest Version](https://img.shields.io/badge/latest-0.1.1-blue.svg) [![Build Status](https://travis-ci.org/shyiko/kubensx.svg?branch=master)](https://travis-ci.org/shyiko/kubensx)
+# kubensx ![Latest Version](https://img.shields.io/badge/latest-0.2.0-blue.svg) [![Build Status](https://travis-ci.org/shyiko/kubensx.svg?branch=master)](https://travis-ci.org/shyiko/kubensx)
 
 Simpler Cluster/User/Namespace switching for Kubernetes  
 (featuring interactive mode and wildcard/fuzzy matching (among other things)).
@@ -20,7 +20,7 @@ context can be changed with `kubensx use user:cluster/namespace` or simply `kube
 #### macOS / Linux
 
 ```sh
-curl -sSL https://github.com/shyiko/kubensx/releases/download/0.1.1/kubensx-0.1.1-$(
+curl -sSL https://github.com/shyiko/kubensx/releases/download/0.2.0/kubensx-0.2.0-$(
     bash -c '[[ $OSTYPE == darwin* ]] && echo darwin || echo linux'
   )-amd64 -o kubensx && chmod a+x kubensx && sudo mv kubensx /usr/local/bin/
 ```
@@ -28,7 +28,7 @@ curl -sSL https://github.com/shyiko/kubensx/releases/download/0.1.1/kubensx-0.1.
 Verify PGP signature (optional but recommended): 
 
 ```
-curl -sSL https://github.com/shyiko/kubensx/releases/download/0.1.1/kubensx-0.1.1-$(
+curl -sSL https://github.com/shyiko/kubensx/releases/download/0.2.0/kubensx-0.2.0-$(
     bash -c '[[ $OSTYPE == darwin* ]] && echo darwin || echo linux'
   )-amd64.asc -o kubensx.asc
 curl -sS https://keybase.io/shyiko/pgp_keys.asc | gpg --import
