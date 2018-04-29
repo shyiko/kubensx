@@ -42,6 +42,7 @@ func (f *simpleFormatter) Format(entry *log.Entry) ([]byte, error) {
 }
 
 func init() {
+	surveyterminal.DiscardUnsupportedEscapeSequences = true
 	// remove "? " prefix
 	survey.SelectQuestionTemplate = strings.Replace(survey.SelectQuestionTemplate,
 		`{{- color "green+hb"}}{{ QuestionIcon }} {{color "reset"}}`, "", 1)
@@ -915,9 +916,10 @@ func promptSelect(text string, opts []string, def string) string {
 	value := def
 	if err := survey.AskOne(
 		&survey.Select{
-			Message: text,
-			Options: opts,
-			Default: def,
+			Message:            text,
+			Options:            opts,
+			Default:            def,
+			FilterResetDefault: true,
 		},
 		&value,
 		nil,
@@ -949,6 +951,7 @@ func promptInput(text string, def string, help string) string {
 		&survey.Input{
 			Message:     text,
 			Default:     def,
+			EditDefault: true,
 			Help:        help,
 		},
 		&value,

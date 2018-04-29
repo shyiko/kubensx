@@ -17,3 +17,8 @@
 [[constraint]]
   name = "github.com/renstrom/fuzzysearch"
   revision = "2d205ac6ec17a839a94bdbfd16d2fa6c6dada2e0"
+
+[[constraint]]
+  name = "gopkg.in/AlecAivazis/survey.v1"
+  source = "https://github.com/shyiko/survey.git"
+  revision = "a14316b11132a62dec3bb47ff8aecf1741ecba1d"

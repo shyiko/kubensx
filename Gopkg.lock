@@ -354,8 +354,8 @@
     "core",
     "terminal"
   ]
-  revision = "0aa8b6a162b391fe2d95648b7677d1d6ac2090a6"
-  version = "v1.4.1"
+  revision = "a14316b11132a62dec3bb47ff8aecf1741ecba1d"
+  source = "https://github.com/shyiko/survey.git"
 
 [[projects]]
   name = "gopkg.in/inf.v0"
@@ -515,6 +515,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "193d61661a31eae015d379f6a132ce64aef4317fdc597ef1ba9d6b103a8955fd"
+  inputs-digest = "a2c0b5c4468bca10bfcc7562b6057fe2a8faf4e2433f96f8dbaa149e3f440281"
   solver-name = "gps-cdcl"
   solver-version = 1
