@@ -93,13 +93,12 @@ wouldn't be shown among the users for any cluster other than "minikube" (when `k
 
 #### Access Control
 
-If a user is not allowed to list namespaces, you can either provide a list of namespaces known to that user with config-ns:
+If a user is not allowed to list namespaces, you can either provide a list of namespaces known to that user with `ns-list`
 
 ```sh
-# interactive
-$ kubensx config-ns
-# mark default, kube-system and kube-public namespaces as known in us-west1 cluster
-$ kubensx config-ns us-west1/{default,kube-system,kube-public}
+$ kubensx ns-list
+# make default, kube-system and kube-public namespaces known to current user in us-west1 cluster
+$ kubensx ns-list us-west1/{default,kube-system,kube-public}
 $ kubensx use west/def
 Switched to account@possibly-gmail.com:us-west1/default
 ```

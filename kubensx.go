@@ -262,11 +262,11 @@ func main() {
 	assocCmd.Flags().BoolP("list", "l", false, "List assoc[iations] (<user>:<cluster>|s)")
 	rootCmd.AddCommand(assocCmd)
 	assocNsCmd := &cobra.Command{
-		Use:     "config-ns [pattern...]",
+		Use:     "ns-list [pattern...]",
 		Aliases: []string{"n"},
 		Short:   "Control list of namespaces",
 		Long: "Control list of namespaces\n\n" +
-			"Use config-ns when:" +
+			"Use ns-list when:" +
 			"\n  - You wish to able to select a namespace from a list of options (e.g. \"kubensx use\")\nbut Access Control configuration prohibits user from listing namespaces; " +
 			"\n  - You wish to reduce number of namespaces available for selection.",
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -403,17 +403,17 @@ func main() {
 			return nil
 		},
 		Example: "  # (interactive)\n" +
-			"  kubensx config-ns\n" +
+			"  kubensx ns-list\n" +
 			"  # make staging namespace known for qa in us-west1 cluster\n" +
-			"  kubensx config-ns qa:us-west1/staging\n" +
+			"  kubensx ns-list qa:us-west1/staging\n" +
 			"  \n" +
 			"  # list assoc[iations]\n" +
-			"  kubensx config-ns -l\n" +
+			"  kubensx ns-list -l\n" +
 			"  \n" +
 			"  # list <user>:<cluster>/<namespace> triples that would be assoc[iated] should\n" +
-			"  # `kubensx config-ns <user>:<cluster>/<namespace>` be executed\n" +
-			"  kubensx config-ns --dry-run minikube/staging\n" +
-			"  kubensx config-ns --dry-run '*:minikube/staging'",
+			"  # `kubensx ns-list <user>:<cluster>/<namespace>` be executed\n" +
+			"  kubensx ns-list --dry-run minikube/staging\n" +
+			"  kubensx ns-list --dry-run '*:minikube/staging'",
 	}
 	assocNsCmd.Flags().BoolP("delete", "d", false, "Delete assoc[iation](s)")
 	assocNsCmd.Flags().Bool("delete-all", false, "Delete all assoc[iations]")
@@ -477,7 +477,7 @@ func main() {
 				return errors.New("--cluster(-c) cannot be omitted when both --user(-u) and --namespace(--ns,-n) are present")
 			}
 			switch {
-			case u == c == n:
+			case u == c && c == n:
 				fmt.Println(formatContext(ctx))
 			case u && c && !n:
 				fmt.Printf("%s:%s\n", ctx.User(), ctx.Cluster())
@@ -506,7 +506,7 @@ func main() {
 			u, _ := cmd.Flags().GetBool("users")
 			c, _ := cmd.Flags().GetBool("clusters")
 			n, _ := cmd.Flags().GetBool("namespaces")
-			ignoreExplicitNS, _ := cmd.Flags().GetBool("ignore-config-ns")
+			ignoreExplicitNS, _ := cmd.Flags().GetBool("ignore-ns-list")
 			if !u && !c && !n {
 				return pflag.ErrHelp
 			}
@@ -531,7 +531,7 @@ func main() {
 	lsCmd.Flags().BoolP("clusters", "c", false, "List clusters")
 	lsCmd.Flags().BoolP("namespaces", "n", false, "List namespaces")
 	lsCmd.Flags().BoolP("users", "u", false, "List users")
-	lsCmd.Flags().Bool("ignore-config-ns", false, "Ignore explicit user:cluster/namespace(s) (if any)")
+	lsCmd.Flags().Bool("ignore-ns-list", false, "Ignore explicit user:cluster/namespace(s) (if any)")
 	rootCmd.AddCommand(lsCmd)
 	useCmd := &cobra.Command{
 		Use:     "use [user:cluster/namespace]",
@@ -553,7 +553,7 @@ func main() {
 			}
 			dryRun, _ := cmd.Flags().GetBool("dry-run")
 			ignoreAssoc, _ := cmd.Flags().GetBool("ignore-assoc")
-			ignoreExplicitNS, _ := cmd.Flags().GetBool("ignore-config-ns")
+			ignoreExplicitNS, _ := cmd.Flags().GetBool("ignore-ns-list")
 			force, _ := cmd.Flags().GetBool("force")
 			if len(args) == 0 {
 				mustContainAtLeastOneCluster(ctx)
@@ -573,7 +573,7 @@ func main() {
 				nss := requireNamespaces(ctx, !ignoreExplicitNS)
 				if len(nss) == 0 {
 					fmt.Println("\nIt appears that the user you have selected is not allowed to list namespaces.\n" +
-						"If you wish to avoid manual entry next time you `kubensx use` - see `kubensx config-ns --help`.\n")
+						"If you wish to avoid manual entry next time you `kubensx use` - see `kubensx ns-list --help`.\n")
 					ns := promptInput("namespace:", "", "")
 					if err := validateNS(ns); err != nil {
 						log.Fatalf(err.Error())
@@ -647,7 +647,7 @@ func main() {
 					if len(r) == 0 {
 						log.Fatalf("It appears that \"%s\" is not allowed to list namespaces in \"%s\" cluster.\n"+
 							"Either use --force(-f) (in which case namespace must be specified --exact|ly) or "+
-							"provide an explicit list of namespaces via `kubensx config-ns`.", ctx.User(), ctx.Cluster())
+							"provide an explicit list of namespaces via `kubensx ns-list`.", ctx.User(), ctx.Cluster())
 					}
 					return r
 				}
@@ -720,12 +720,12 @@ func main() {
 	useCmd.Flags().BoolP("exact", "e", false, "Match exactly (by default wildcard matching is used)")
 	useCmd.Flags().BoolP("fuzzy", "z", false, "Match fuzzily (by default wildcard matching is used)")
 	useCmd.Flags().Bool("ignore-assoc", false, "Ignore user:cluster assoc[iations] (if any)")
-	useCmd.Flags().Bool("ignore-config-ns", false, "Ignore explicit user:cluster/namespace(s) (if any)")
+	useCmd.Flags().Bool("ignore-ns-list", false, "Ignore explicit user:cluster/namespace(s) (if any)")
 	useCmd.Flags().BoolP("namespace", "n", false, "Change namespace only")
 	useCmd.Flags().Bool("ns", false, "Alias for --namespace")
 	useCmd.Flags().BoolP("user", "u", false, "Change user only")
 	useCmd.Flags().BoolP("force", "f", false, "Skip namespace validation (NOTE: namespace must be provided --exact|ly)"+
-		"\n(useful when user is not allowed to list namespaces; see also \"kubensx config-ns --help\")")
+		"\n(useful when user is not allowed to list namespaces; see also \"kubensx ns-list --help\")")
 	rootCmd.AddCommand(useCmd)
 	walk(rootCmd, func(cmd *cobra.Command) {
 		cmd.Flags().BoolP("help", "h", false, "Print usage")

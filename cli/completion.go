@@ -77,23 +77,6 @@ func (c *Completion) Execute() (bool, error) {
 					"zsh":  complete.Command{},
 				},
 			},
-			"config-ns": complete.Command{
-				Flags: complete.Flags{
-					"--delete":     complete.PredictNothing,
-					"-d":           complete.PredictNothing,
-					"--delete-all": complete.PredictNothing,
-					"--dry-run":    complete.PredictNothing,
-					"-x":           complete.PredictNothing,
-					"--exact":      complete.PredictNothing,
-					"-e":           complete.PredictNothing,
-					"--fuzzy":      complete.PredictNothing,
-					"-z":           complete.PredictNothing,
-					"--list":       complete.PredictNothing,
-					"-l":           complete.PredictNothing,
-				},
-				// todo:
-				// Args: oneOf(c.ctx().Users()),
-			},
 			"current": complete.Command{
 				Flags: complete.Flags{
 					"--cluster":   complete.PredictNothing,
@@ -115,25 +98,42 @@ func (c *Completion) Execute() (bool, error) {
 					"-n":           complete.PredictNothing,
 				},
 			},
+			"ns-list": complete.Command{
+				Flags: complete.Flags{
+					"--delete":     complete.PredictNothing,
+					"-d":           complete.PredictNothing,
+					"--delete-all": complete.PredictNothing,
+					"--dry-run":    complete.PredictNothing,
+					"-x":           complete.PredictNothing,
+					"--exact":      complete.PredictNothing,
+					"-e":           complete.PredictNothing,
+					"--fuzzy":      complete.PredictNothing,
+					"-z":           complete.PredictNothing,
+					"--list":       complete.PredictNothing,
+					"-l":           complete.PredictNothing,
+				},
+				// todo:
+				// Args: oneOf(c.ctx().Users()),
+			},
 			"use": complete.Command{
 				Flags: complete.Flags{
-					"--cluster":          complete.PredictNothing,
-					"-c":                 complete.PredictNothing,
-					"--dry-run":          complete.PredictNothing,
-					"-x":                 complete.PredictNothing,
-					"--exact":            complete.PredictNothing,
-					"-e":                 complete.PredictNothing,
-					"--force":            complete.PredictNothing,
-					"-f":                 complete.PredictNothing,
-					"--fuzzy":            complete.PredictNothing,
-					"-z":                 complete.PredictNothing,
-					"--ignore-assoc":     complete.PredictNothing,
-					"--ignore-config-ns": complete.PredictNothing,
-					"--namespace":        complete.PredictNothing,
-					"--ns":               complete.PredictNothing,
-					"-n":                 complete.PredictNothing,
-					"--user":             complete.PredictNothing,
-					"-u":                 complete.PredictNothing,
+					"--cluster":        complete.PredictNothing,
+					"-c":               complete.PredictNothing,
+					"--dry-run":        complete.PredictNothing,
+					"-x":               complete.PredictNothing,
+					"--exact":          complete.PredictNothing,
+					"-e":               complete.PredictNothing,
+					"--force":          complete.PredictNothing,
+					"-f":               complete.PredictNothing,
+					"--fuzzy":          complete.PredictNothing,
+					"-z":               complete.PredictNothing,
+					"--ignore-assoc":   complete.PredictNothing,
+					"--ignore-ns-list": complete.PredictNothing,
+					"--namespace":      complete.PredictNothing,
+					"--ns":             complete.PredictNothing,
+					"-n":               complete.PredictNothing,
+					"--user":           complete.PredictNothing,
+					"-u":               complete.PredictNothing,
 				},
 				// todo:
 				// Args: oneOf(c.ctx().Users()),
@@ -147,10 +147,10 @@ func (c *Completion) Execute() (bool, error) {
 							"zsh":  complete.Command{},
 						},
 					},
-					"config-ns": complete.Command{},
-					"current":   complete.Command{},
-					"ls":        complete.Command{},
-					"use":       complete.Command{},
+					"current": complete.Command{},
+					"ls":      complete.Command{},
+					"ns-list": complete.Command{},
+					"use":     complete.Command{},
 				},
 			},
 		},
@@ -166,9 +166,9 @@ func (c *Completion) Execute() (bool, error) {
 		},
 	}
 	run.Sub["a"] = run.Sub["assoc"]
-	run.Sub["n"] = run.Sub["config-ns"]
 	run.Sub["c"] = run.Sub["current"]
 	run.Sub["l"] = run.Sub["ls"]
+	run.Sub["n"] = run.Sub["ns-list"]
 	run.Sub["u"] = run.Sub["use"]
 	completion := complete.New(filepath.Base(bin), run)
 	if os.Getenv("COMP_LINE") != "" {
